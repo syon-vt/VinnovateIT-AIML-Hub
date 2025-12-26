@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Hub</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <header>
+        <span style="font-weight: bold; color: #007bff;">AI HUB</span>
+        <div>
+            <label style="font-size: 0.8rem; margin-right: 5px;">Mode:</label>
+            <select id="persona">
+                <option value="Automatic">Automatic (AI Decides)</option>
+                <option value="Calm Professor">Calm Professor</option>
+                <option value="Overconfident Genius">Overconfident Genius</option>
+                <option value="Nervous Intern">Nervous Intern</option>
+                <option value="Sarcastic Reviewer">Sarcastic Reviewer</option>
+            </select>
+        </div>
+    </header>
+
+    <div id="chat-box"></div>
+
+    <div class="controls">
+        <input type="text" id="user-input" placeholder="Enter query..." onkeydown="if(event.key==='Enter') sendMessage()">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        let history = [];
+        const chatBox = document.getElementById('chat-box');
+        const personaSelector = document.getElementById('persona');
+
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const selectedPersona = personaSelector.value;
+            chatBox.innerHTML += `<div class="msg user">${message}</div>`;
+            input.value = '';
+
+            const aiMsgDiv = document.createElement('div');
+            aiMsgDiv.className = 'msg ai';
+            chatBox.appendChild(aiMsgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ message, persona: selectedPersona, history })
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value);
+                fullText += chunk;
+
+                // Sync the GUI if in Automatic Mode
+                if (selectedPersona === "Automatic") {
+                    const styleMatch = fullText.match(/\[Style:\s*(.*?)\]/i);
+                    if (styleMatch && styleMatch[1]) {
+                        const detectedStyle = styleMatch[1].trim();
+                        // Update dropdown only if it matches one of our options
+                        Array.from(personaSelector.options).forEach(opt => {
+                            if (detectedStyle.includes(opt.value) && opt.value !== "Automatic") {
+                                // We don't change the actual selector value (keep it on Automatic)
+                                // but we could show a visual cue here.
+                            }
+                        });
+                    }
+                }
+
+                // Display response, cleaning out the bracketed tags for the user
+                aiMsgDiv.innerText = fullText.replace(/\[Intent:.*?\]/g, '').replace(/\[Style:.*?\]/g, '').trim();
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+            history.push({role: 'user', content: message}, {role: 'assistant', content: fullText});
+        }
+    </script>
+</body>
+</html>
