@@ -61,22 +61,19 @@
                 const chunk = decoder.decode(value);
                 fullText += chunk;
 
-                // Sync the GUI if in Automatic Mode
                 if (selectedPersona === "Automatic") {
                     const styleMatch = fullText.match(/\[Style:\s*(.*?)\]/i);
                     if (styleMatch && styleMatch[1]) {
                         const detectedStyle = styleMatch[1].trim();
-                        // Update dropdown only if it matches one of our options
+                        
                         Array.from(personaSelector.options).forEach(opt => {
                             if (detectedStyle.includes(opt.value) && opt.value !== "Automatic") {
-                                // We don't change the actual selector value (keep it on Automatic)
-                                // but we could show a visual cue here.
+                                
                             }
                         });
                     }
                 }
 
-                // Display response, cleaning out the bracketed tags for the user
                 aiMsgDiv.innerText = fullText.replace(/\[Intent:.*?\]/g, '').replace(/\[Style:.*?\]/g, '').trim();
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
@@ -85,4 +82,5 @@
         }
     </script>
 </body>
+
 </html>
